@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lot &amp; Ledger — Bible Chapter Picker</title>
+<style>
+  :root{
+    --ink:#15130f;
+    --ink-2:#1d1a14;
+    --parchment:#e9e0c9;
+    --parchment-dim:#b9ae8f;
+    --crimson:#8a2e2e;
+    --crimson-bright:#b5453f;
+    --brass:#c8a24b;
+    --brass-dim:#8f7638;
+    --teal:#4f96b0;
+    --green:#5c9e7f;
+    --line: rgba(201,178,120,0.25);
+    --radius: 3px;
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --mono: "SF Mono", "Menlo", "Consolas", monospace;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at top, #201c15 0%, var(--ink) 55%),
+      var(--ink);
+    color: var(--parchment);
+    font-family: var(--sans);
+    padding: 48px 20px 340px;
+  }
+
+  .wrap{
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .masthead{ text-align:center; margin-bottom: 40px; }
+  .masthead .eyebrow{
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.25em;
+    text-transform: uppercase; color: var(--brass); margin-bottom: 10px;
+  }
+  .masthead h1{
+    font-family: var(--serif); font-weight: 400; font-size: 42px;
+    margin: 0 0 8px; letter-spacing: 0.01em; color: var(--parchment);
+  }
+  .masthead .rule{
+    width: 90px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--brass), transparent);
+    margin: 18px auto;
+  }
+  .masthead p{
+    font-family: var(--serif); font-style: italic; color: var(--parchment-dim);
+    font-size: 15px; margin: 0;
+  }
+
+  .panel{
+    background: linear-gradient(180deg, var(--ink-2), #191510);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 28px 30px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .panel::before{
+    content:""; position:absolute; top:0; left:0; right:0; height:3px;
+    background: linear-gradient(90deg, var(--crimson), var(--brass) 50%, var(--crimson));
+    opacity:0.7;
+  }
+  .panel h2{
+    font-family: var(--serif); font-weight:400; font-size: 15px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--brass); margin: 0 0 18px;
+  }
+
+  .draw-btn{
+    display:block; width:100%; padding: 16px;
+    background: var(--crimson); color: var(--parchment);
+    border: 1px solid var(--crimson-bright); border-radius: var(--radius);
+    font-family: var(--serif); font-size: 17px; letter-spacing: 0.03em; cursor:pointer;
+    transition: background 0.15s ease, transform 0.05s ease;
+  }
+  .draw-btn:hover{ background: var(--crimson-bright); }
+  .draw-btn:active{ transform: translateY(1px); }
+  .draw-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  .lots{ margin-top: 22px; display:flex; flex-direction:column; gap: 10px; }
+  .lot{
+    display:flex; align-items:baseline; gap: 14px; padding: 14px 16px;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: rgba(201,178,120,0.04); animation: settle 0.35s ease both;
+  }
+  @keyframes settle{ from{ opacity:0; transform: translateY(6px); } to{ opacity:1; transform: translateY(0); } }
+  .lot .num{ font-family: var(--mono); color: var(--brass-dim); font-size: 12px; min-width: 16px; }
+  .lot .ref{ font-family: var(--serif); font-size: 19px; color: var(--parchment); flex: 1; }
+  .lot .how{
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--parchment-dim); white-space: nowrap;
+  }
+  .lot .tr{
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--ink);
+    background: var(--brass); padding: 3px 8px; border-radius: 2px; white-space: nowrap;
+  }
+
+  .empty-note{ font-family: var(--serif); font-style: italic; color: var(--parchment-dim); font-size: 14px; margin-top: 14px; }
+
+  .stat-row{
+    display:flex; justify-content: space-between; align-items: baseline;
+    font-family: var(--mono); font-size: 12px; color: var(--parchment-dim);
+    margin-bottom: 18px; letter-spacing: 0.03em;
+  }
+  .stat-row strong{ color: var(--brass); }
+
+  label{
+    display:block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--parchment-dim); margin-bottom: 6px;
+  }
+
+  select, input[type="password"], input[type="text"]{
+    width: 100%; padding: 10px 12px; background: var(--ink);
+    border: 1px solid var(--line); border-radius: var(--radius);
+    color: var(--parchment); font-family: var(--sans); font-size: 14px; margin-bottom: 14px;
+  }
+  select:focus, input:focus{ outline: 2px solid var(--brass); outline-offset: 1px; }
+
+  .row{ display:flex; gap: 10px; }
+  .row > *{ flex:1; }
+
+  .btn-secondary{
+    padding: 10px 14px; background: transparent; border: 1px solid var(--brass-dim);
+    color: var(--brass); border-radius: var(--radius); font-family: var(--mono);
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+  }
+  .btn-secondary:hover{ border-color: var(--brass); background: rgba(200,162,75,0.08); }
+  .btn-secondary:disabled{ opacity:0.4; cursor:not-allowed; }
+  .btn-danger{ border-color: var(--crimson); color: var(--crimson-bright); }
+  .btn-danger:hover{ background: rgba(138,46,46,0.12); }
+
+  .msg{ font-family: var(--mono); font-size: 12px; padding: 10px 12px; border-radius: var(--radius); margin-top: 12px; display:none; }
+  .msg.show{ display:block; }
+  .msg.ok{ background: rgba(120,160,90,0.12); color:#a9c98a; border:1px solid rgba(120,160,90,0.3); }
+  .msg.err{ background: rgba(180,70,60,0.12); color:#e08a83; border:1px solid rgba(180,70,60,0.3); }
+  .msg.info{ background: rgba(200,162,75,0.1); color: var(--brass); border:1px solid rgba(200,162,75,0.3); }
+
+  details{ margin-top: 4px; }
+  summary{
+    cursor:pointer; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--parchment-dim); margin-bottom: 12px;
+  }
+  summary:hover{ color: var(--brass); }
+
+  .pool-list{
+    max-height: 220px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 10px 12px; font-family: var(--mono); font-size: 12px; color: var(--parchment-dim);
+    line-height: 1.9; background: var(--ink);
+  }
+  .pool-list span{ display:inline-block; margin-right: 10px; }
+
+  footer{
+    text-align:center; margin-top: 30px; font-family: var(--mono); font-size: 10px;
+    color: var(--parchment-dim); letter-spacing: 0.05em; opacity: 0.6;
+  }
+
+  .mechanics{ font-family: var(--sans); font-size: 12px; line-height: 1.7; color: var(--parchment-dim); }
+  .mechanics b{ color: var(--parchment); font-weight: 600; }
+
+  /* ---------- Floating console ---------- */
+  .lc-widget{
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 999;
+    max-width: 720px; margin: 0 auto;
+    font-family: var(--mono);
+    border: 1px solid var(--line);
+    border-bottom: none;
+    background: #0e0d0a;
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.5);
+    border-radius: var(--radius) var(--radius) 0 0;
+    display:flex; flex-direction:column;
+  }
+  .lc-header{
+    display:flex; align-items:center; justify-content: space-between;
+    padding: 10px 16px; cursor:pointer; user-select:none;
+    border-bottom: 1px solid var(--line);
+  }
+  .lc-header .title{
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass);
+  }
+  .lc-header .count{ color: var(--parchment-dim); font-size: 11px; }
+  .lc-header .chev{ color: var(--parchment-dim); font-size: 11px; margin-left: 10px; }
+
+  .lc-body{ display:none; flex-direction: column; }
+  .lc-widget.open .lc-body{ display:flex; }
+
+  .lc-toolbar{
+    display:flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px;
+    border-bottom: 1px solid var(--line); align-items:center;
+  }
+  .lc-toolbar select{
+    margin:0; width:auto; padding: 6px 8px; font-size: 11px; font-family: var(--mono);
+  }
+  .lc-toolbar button{
+    padding: 6px 10px; background: transparent; border: 1px solid var(--brass-dim);
+    color: var(--brass); border-radius: var(--radius); font-family: var(--mono);
+    font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; cursor:pointer;
+  }
+  .lc-toolbar button:hover{ border-color: var(--brass); background: rgba(200,162,75,0.08); }
+  .lc-toolbar .sp{ flex:1; }
+
+  .lc-log{
+    height: 220px; overflow-y: auto; padding: 8px 14px; font-size: 11px; line-height: 1.65;
+  }
+  .lc-line{ white-space: pre-wrap; word-break: break-word; padding: 1px 0; }
+  .lc-line .id{ opacity: 0.75; font-weight: 700; margin-right: 6px; }
+  .lc-line .ty{ font-weight: 700; margin-right: 6px; }
+  .lc-line .ts{ opacity: 0.4; margin-right: 6px; }
+  .lc-line.sub{ margin-left: 18px; opacity: 0.92; border-left: 1px solid var(--line); padding-left: 8px; }
+
+  .lc-msg{ font-size: 11px; padding: 6px 14px; color: var(--parchment-dim); }
+  .lc-msg.ok{ color:#a9c98a; }
+  .lc-msg.err{ color:#e08a83; }
+
+  input[type="file"]{ display:none; }
+
+  @media (max-width: 760px){
+    .lc-widget{ max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow">Sortition &amp; Scripture</div>
+    <h1>Lot &amp; Ledger</h1>
+    <div class="rule"></div>
+    <p>Three chapters, cast from the whole pool.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Draw</h2>
+    <button class="draw-btn" id="drawBtn">Cast the lots</button>
+    <div class="lots" id="lots"></div>
+    <div class="empty-note" id="emptyNote" style="display:none;">The pool is empty. Nothing left to draw from.</div>
+  </div>
+
+  <div class="panel">
+    <h2>The Pool</h2>
+    <div class="stat-row">
+      <span>Chapters remaining</span>
+      <strong id="poolCount">—</strong>
+    </div>
+
+    <label for="removeSelect">Remove a chapter</label>
+    <input type="text" id="poolFilter" placeholder="Filter, e.g. &quot;John&quot;">
+    <select id="removeSelect" size="6"></select>
+
+    <label for="passwordInput">Password</label>
+    <input type="password" id="passwordInput" placeholder="Enter password">
+
+    <div class="row">
+      <button class="btn-secondary btn-danger" id="removeBtn">Remove chapter</button>
+      <button class="btn-secondary" id="resetBtn">Reset pool</button>
+    </div>
+
+    <div class="msg" id="poolMsg"></div>
+
+    <details style="margin-top:18px;">
+      <summary>View current pool order</summary>
+      <div class="pool-list" id="poolList"></div>
+    </details>
+  </div>
+
+  <div class="panel">
+    <h2>Password</h2>
+    <div class="stat-row">
+      <span>Status</span>
+      <strong id="pwStatus">—</strong>
+    </div>
+    <div class="row">
+      <input type="password" id="pwOld" placeholder="Current password (leave blank if none set)">
+      <input type="password" id="pwNew" placeholder="New password">
+    </div>
+    <button class="btn-secondary" id="setPwBtn">Set / change password</button>
+    <div class="msg" id="pwMsg"></div>
+  </div>
+
+  <div class="panel">
+    <h2>How the lots fall</h2>
+    <div class="mechanics">
+      <p><b>Translation</b> — each drawn chapter is 80% likely to be NLT, and 20% likely to be a randomly chosen alternate translation (ESV, KJV, NIV, NASB, CSB, NKJV, AMP, NRSV, or MSG).</p>
+      <p><b>Selection</b> — the pool starts in canonical (Genesis 1 → Revelation 22) order. The first of the three chapters is drawn uniformly at random from the pool. Each following chapter has a 50% chance of being the next chapter in the pool after the previous draw, a 10% chance of being the previous chapter in the pool, and a 40% chance of being a fresh random draw.</p>
+      <p><b>Password &amp; drift</b> — removing a chapter requires a password. Every time that password is entered correctly to remove a chapter, each chapter still in the pool has an independent 20% chance of swapping one place up or down. Immediately after the chapter is actually removed, a second pass gives each remaining chapter a 25% chance of the same swap.</p>
+      <p><b>The Ledger</b> — every roll, swap, draw, removal, and import/export is logged with an ID below and in the DevTools console (<code>window.LotAndLedger</code>). State (<code>lotAndLedgerState</code>) and the running history (<code>lotAndLedgerHistory</code>) are saved separately in this browser's localStorage.</p>
+    </div>
+  </div>
+
+  <footer>Runs entirely client-side · state stored in this browser's localStorage · console log below and via <code>window.LotAndLedger</code></footer>
+</div>
+
+<!-- ---------- Floating console ---------- -->
+<div class="lc-widget" id="lcWidget">
+  <div class="lc-header" id="lcHeader">
+    <span class="title">⌂ Ledger Console</span>
+    <span><span class="count" id="lcCount">0 events</span><span class="chev" id="lcChev">▲</span></span>
+  </div>
+  <div class="lc-body">
+    <div class="lc-toolbar">
+      <select id="lcFormat">
+        <option value="md">.md</option>
+        <option value="txt">.txt</option>
+        <option value="json">.json</option>
+        <option value="rtf">.rtf</option>
+      </select>
+      <button id="lcExport">Export</button>
+      <button id="lcCopy">Copy</button>
+      <button id="lcImportBtn">Import file</button>
+      <button id="lcMergeBtn">Merge history from file</button>
+      <span class="sp"></span>
+    </div>
+    <div class="lc-msg" id="lcMsg"></div>
+    <div class="lc-log" id="lcLog"></div>
+  </div>
+</div>
+<input type="file" id="lcImportFile" accept=".md,.txt,.json,.rtf">
+<input type="file" id="lcMergeFile" accept=".md,.txt,.json,.rtf">
+
+<script>
+(function(){
+
+  /* =====================================================================
+     BIBLE DATA
+  ===================================================================== */
+  const BIBLE_BOOKS = [
+    ["Genesis",50],["Exodus",40],["Leviticus",27],["Numbers",36],["Deuteronomy",34],
+    ["Joshua",24],["Judges",21],["Ruth",4],["1 Samuel",31],["2 Samuel",24],
+    ["1 Kings",22],["2 Kings",25],["1 Chronicles",29],["2 Chronicles",36],["Ezra",10],
+    ["Nehemiah",13],["Esther",10],["Job",42],["Psalms",150],["Proverbs",31],
+    ["Ecclesiastes",12],["Song of Solomon",8],["Isaiah",66],["Jeremiah",52],["Lamentations",5],
+    ["Ezekiel",48],["Daniel",12],["Hosea",14],["Joel",3],["Amos",9],
+    ["Obadiah",1],["Jonah",4],["Micah",7],["Nahum",3],["Habakkuk",3],
+    ["Zephaniah",3],["Haggai",2],["Zechariah",14],["Malachi",4],["Matthew",28],
+    ["Mark",16],["Luke",24],["John",21],["Acts",28],["Romans",16],
+    ["1 Corinthians",16],["2 Corinthians",13],["Galatians",6],["Ephesians",6],["Philippians",4],
+    ["Colossians",4],["1 Thessalonians",5],["2 Thessalonians",3],["1 Timothy",6],["2 Timothy",4],
+    ["Titus",3],["Philemon",1],["Hebrews",13],["James",5],["1 Peter",5],
+    ["2 Peter",3],["1 John",5],["2 John",1],["3 John",1],["Jude",1],
+    ["Revelation",22]
+  ];
+  const OTHER_TRANSLATIONS = ["ESV","KJV","NIV","NASB","CSB","NKJV","AMP","NRSV","MSG"];
+
+  function buildDefaultPool(){
+    const pool = [];
+    for (const [name, count] of BIBLE_BOOKS){
+      for (let c = 1; c <= count; c++) pool.push(name + " " + c);
+    }
+    return pool;
+  }
+
+  /* =====================================================================
+     PERSISTENCE — two independent localStorage keys
+  ===================================================================== */
+  const STATE_KEY = "lotAndLedgerState";
+  const HISTORY_KEY = "lotAndLedgerHistory";
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STATE_KEY);
+      if (raw){ const p = JSON.parse(raw); if (Array.isArray(p.pool)) return p; }
+    }catch(e){}
+    return { pool: buildDefaultPool(), password: null };
+  }
+  function saveState(){
+    try{ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }
+    catch(e){ console.warn("Could not save state:", e); }
+  }
+
+  function loadHistory(){
+    try{
+      const raw = localStorage.getItem(HISTORY_KEY);
+      if (raw){ const p = JSON.parse(raw); if (Array.isArray(p.events)) return p; }
+    }catch(e){}
+    return { nextSeq: 1, events: [] };
+  }
+  function saveHistory(){
+    try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(historyStore)); }
+    catch(e){ console.warn("Could not save history:", e); }
+  }
+
+  let state = loadState();
+  let historyStore = loadHistory();
+
+  /* =====================================================================
+     RANDOMNESS
+  ===================================================================== */
+  function randInt(n){ return Math.floor(Math.random() * n); }
+  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+  function encode(pw){ return btoa(unescape(encodeURIComponent(pw))); }
+
+  /* =====================================================================
+     LOGGING / LEDGER
+  ===================================================================== */
+  const TYPE_COLORS = {
+    DRAW:'#c8a24b', ROLL:'#8f7638', DRIFT:'#4f96b0', SWAP:'#3d7a91',
+    REMOVE:'#b5453f', RESET:'#8a2e2e', PASSWORD:'#c8a24b',
+    IMPORT:'#7fae5c', EXPORT:'#5c9e7f', MERGE:'#5c9ec2', ERROR:'#e0544a', INFO:'#8a8a8a'
+  };
+
+  function newTopId(){
+    const n = historyStore.nextSeq++;
+    return 'E' + String(n).padStart(5,'0');
+  }
+  function subId(topId, n){ return topId + '.' + n; }
+
+  function logEvent(id, type, message, data){
+    const ev = { id, type, ts: new Date().toISOString(), message, data: data || {} };
+    historyStore.events.push(ev);
+    saveHistory();
+    renderLogLine(ev);
+    consolePrint(ev);
+    return ev;
+  }
+
+  function consolePrint(ev){
+    const color = TYPE_COLORS[ev.type] || '#c8a24b';
+    console.log(
+      '%c[' + ev.id + ']%c ' + ev.type + ' — ' + ev.message,
+      'color:' + color + ';font-weight:bold', 'color:inherit', ev.data
+    );
+  }
+
+  const lcLog = document.getElementById('lcLog');
+  const lcCount = document.getElementById('lcCount');
+
+  function renderLogLine(ev){
+    const div = document.createElement('div');
+    const isSub = ev.id.indexOf('.') !== -1;
+    div.className = 'lc-line' + (isSub ? ' sub' : '');
+    const color = TYPE_COLORS[ev.type] || '#c8a24b';
+    const time = ev.ts.slice(11,19);
+    div.innerHTML =
+      '<span class="ts">' + time + '</span>' +
+      '<span class="id" style="color:' + color + '">' + ev.id + '</span>' +
+      '<span class="ty" style="color:' + color + '">' + ev.type + '</span>' +
+      escapeHtml(ev.message);
+    lcLog.appendChild(div);
+    lcLog.scrollTop = lcLog.scrollHeight;
+    lcCount.textContent = historyStore.events.length + ' events';
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  }
+
+  function replayLogToWidget(){
+    lcLog.innerHTML = '';
+    for (const ev of historyStore.events) renderLogLine(ev);
+  }
+
+  /* =====================================================================
+     DRAW — animated, fully logged
+  ===================================================================== */
+  const drawBtn = document.getElementById("drawBtn");
+  const lotsEl = document.getElementById("lots");
+  const emptyNote = document.getElementById("emptyNote");
+
+  function pickTranslationLogged(){
+    const roll = Math.random();
+    if (roll < 0.8) return { translation: 'NLT', info: { roll, threshold: 0.8, outcome: 'NLT' } };
+    const altIdx = randInt(OTHER_TRANSLATIONS.length);
+    const translation = OTHER_TRANSLATIONS[altIdx];
+    return { translation, info: { roll, threshold: 0.8, outcome: 'alternate', altIndex: altIdx, translation } };
+  }
+
+  function renderDrawStep(i, ref, translation, how){
+    if (i === 0) lotsEl.innerHTML = '';
+    const row = document.createElement('div');
+    row.className = 'lot';
+    row.innerHTML =
+      '<span class="num">' + (i+1) + '</span>' +
+      '<span class="ref">' + ref + '</span>' +
+      '<span class="how">' + how + '</span>' +
+      '<span class="tr">' + translation + '</span>';
+    lotsEl.appendChild(row);
+  }
+
+  async function performDraw(){
+    drawBtn.disabled = true;
+    const topId = newTopId();
+
+    if (state.pool.length === 0){
+      lotsEl.innerHTML = '';
+      emptyNote.style.display = 'block';
+      logEvent(topId, 'ERROR', 'Draw attempted on an empty pool.', {});
+      drawBtn.disabled = false;
+      return;
+    }
+    emptyNote.style.display = 'none';
+
+    logEvent(topId, 'DRAW', 'Casting 3 lots from a pool of ' + state.pool.length + ' chapters.', { poolSize: state.pool.length });
+
+    let cursor = randInt(state.pool.length);
+    for (let i = 0; i < 3; i++){
+      let idx, how, selInfo;
+      if (i === 0){
+        idx = cursor;
+        how = 'random start';
+        selInfo = { method: 'uniform', index: idx };
+      } else {
+        const roll = Math.random();
+        if (roll < 0.5){ idx = (cursor + 1) % state.pool.length; how = 'next in pool'; }
+        else if (roll < 0.6){ idx = (cursor - 1 + state.pool.length) % state.pool.length; how = 'prev in pool'; }
+        else { idx = randInt(state.pool.length); how = 'random'; }
+        selInfo = { method: 'weighted', roll, thresholds: { next: 0.5, prev: 0.6 }, outcome: how };
+      }
+      cursor = idx;
+      const ref = state.pool[idx];
+      const tr = pickTranslationLogged();
+
+      const msg = 'Lot ' + (i+1) + ' — ' +
+        (i === 0 ? 'random start' : ('selection roll ' + selInfo.roll.toFixed(3) + ' → ' + how)) +
+        ' → index ' + idx + ' → "' + ref + '"; translation roll ' + tr.info.roll.toFixed(3) + ' → ' + tr.translation + '.';
+
+      logEvent(subId(topId, i+1), 'ROLL', msg, { selection: selInfo, translation: tr.info, ref, index: idx });
+
+      renderDrawStep(i, ref, tr.translation, how);
+      await sleep(280);
+    }
+
+    drawBtn.disabled = false;
+  }
+
+  drawBtn.addEventListener('click', () => { performDraw(); });
+
+  /* =====================================================================
+     DRIFT — animated, capped-delay, fully logged
+  ===================================================================== */
+  async function driftAnimated(topId, startN, label, p){
+    let n = startN;
+    const swaps = [];
+    for (let i = 0; i < state.pool.length; i++){
+      const roll = Math.random();
+      if (roll < p){
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        const j = i + dir;
+        if (j >= 0 && j < state.pool.length) swaps.push({ i, j, roll, dir });
+      }
+    }
+
+    logEvent(subId(topId, n++), 'DRIFT',
+      label + ' (p=' + p + ') — evaluated ' + state.pool.length + ' chapters; ' + swaps.length + ' will shift.',
+      { p, poolSize: state.pool.length, swapCount: swaps.length });
+
+    const perDelay = swaps.length > 0 ? Math.min(50, Math.max(3, 2000 / swaps.length)) : 0;
+
+    for (const s of swaps){
+      const a = state.pool[s.i], b = state.pool[s.j];
+      const tmp = state.pool[s.i]; state.pool[s.i] = state.pool[s.j]; state.pool[s.j] = tmp;
+      logEvent(subId(topId, n++), 'SWAP',
+        'Swap: "' + a + '" (idx ' + s.i + ') \u2194 "' + b + '" (idx ' + s.j + ') [roll ' + s.roll.toFixed(3) + ' < ' + p + ', dir ' + (s.dir > 0 ? '+1' : '-1') + ']',
+        { from: s.i, to: s.j, roll: s.roll, dir: s.dir, a, b });
+      if (perDelay > 0) await sleep(perDelay);
+    }
+    saveState();
+    return n;
+  }
+
+  /* =====================================================================
+     POOL MANAGEMENT UI
+  ===================================================================== */
+  const poolCountEl = document.getElementById("poolCount");
+  const poolFilter = document.getElementById("poolFilter");
+  const removeSelect = document.getElementById("removeSelect");
+  const passwordInput = document.getElementById("passwordInput");
+  const removeBtn = document.getElementById("removeBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const poolMsg = document.getElementById("poolMsg");
+  const poolListEl = document.getElementById("poolList");
+
+  const pwStatus = document.getElementById("pwStatus");
+  const pwOld = document.getElementById("pwOld");
+  const pwNew = document.getElementById("pwNew");
+  const setPwBtn = document.getElementById("setPwBtn");
+  const pwMsg = document.getElementById("pwMsg");
+
+  function showMsg(el, text, kind){ el.textContent = text; el.className = "msg show " + kind; }
+  function hideMsg(el){ el.className = "msg"; }
+
+  function renderPoolSelect(){
+    const filter = poolFilter.value.trim().toLowerCase();
+    removeSelect.innerHTML = "";
+    for (const ref of state.pool){
+      if (filter && !ref.toLowerCase().includes(filter)) continue;
+      const opt = document.createElement("option");
+      opt.value = ref; opt.textContent = ref;
+      removeSelect.appendChild(opt);
+    }
+  }
+  function renderPoolList(){
+    poolListEl.innerHTML = state.pool.map(r => "<span>" + r + "</span>").join("");
+  }
+  function renderStats(){
+    poolCountEl.textContent = state.pool.length + " / " + buildDefaultPool().length;
+    pwStatus.textContent = state.password ? "Password set" : "No password set yet";
+  }
+  function renderAll(){ renderPoolSelect(); renderPoolList(); renderStats(); }
+
+  poolFilter.addEventListener("input", renderPoolSelect);
+
+  removeBtn.addEventListener("click", async () => {
+    hideMsg(poolMsg);
+    const selected = removeSelect.value;
+    if (!selected){ showMsg(poolMsg, "Select a chapter to remove first.", "err"); return; }
+    if (!state.password){ showMsg(poolMsg, "No password has been set yet. Set one below first.", "err"); return; }
+    const entered = passwordInput.value;
+    if (encode(entered) !== state.password){
+      logEvent(newTopId(), 'ERROR', 'Incorrect password attempt (remove chapter "' + selected + '").', {});
+      showMsg(poolMsg, "Incorrect password.", "err");
+      return;
+    }
+
+    removeBtn.disabled = true; resetBtn.disabled = true; drawBtn.disabled = true;
+    const topId = newTopId();
+    let n = 1;
+
+    logEvent(subId(topId, n++), 'PASSWORD', 'Password accepted for removal of "' + selected + '".', {});
+    n = await driftAnimated(topId, n, 'Drift pass A (post-password)', 0.20);
+
+    const idx = state.pool.indexOf(selected);
+    if (idx !== -1) state.pool.splice(idx, 1);
+    logEvent(subId(topId, n++), 'REMOVE',
+      'Removed "' + selected + '" from pool (was index ' + idx + '). Pool now ' + state.pool.length + ' chapters.',
+      { removed: selected, index: idx, poolSizeAfter: state.pool.length });
+
+    n = await driftAnimated(topId, n, 'Drift pass B (post-removal)', 0.25);
+
+    saveState();
+    renderAll();
+    passwordInput.value = "";
+    removeBtn.disabled = false; resetBtn.disabled = false; drawBtn.disabled = false;
+    showMsg(poolMsg, "Removed " + selected + ". The pool has shifted.", "ok");
+  });
+
+  resetBtn.addEventListener("click", () => {
+    hideMsg(poolMsg);
+    if (!state.password){ showMsg(poolMsg, "No password has been set yet. Set one below first.", "err"); return; }
+    const entered = passwordInput.value;
+    if (encode(entered) !== state.password){
+      logEvent(newTopId(), 'ERROR', 'Incorrect password attempt (reset pool).', {});
+      showMsg(poolMsg, "Incorrect password.", "err");
+      return;
+    }
+    if (!confirm("Reset the pool to the full canonical 1,189 chapters?")) return;
+
+    const topId = newTopId();
+    logEvent(subId(topId, 1), 'PASSWORD', 'Password accepted for pool reset.', {});
+    const before = state.pool.length;
+    state.pool = buildDefaultPool();
+    saveState();
+    logEvent(subId(topId, 2), 'RESET', 'Pool reset to canonical order (' + before + ' → ' + state.pool.length + ' chapters).', { before, after: state.pool.length });
+
+    renderAll();
+    passwordInput.value = "";
+    showMsg(poolMsg, "Pool reset to canonical order.", "ok");
+  });
+
+  setPwBtn.addEventListener("click", () => {
+    hideMsg(pwMsg);
+    const oldPw = pwOld.value;
+    const newPw = pwNew.value;
+    if (!newPw){ showMsg(pwMsg, "Enter a new password.", "err"); return; }
+    const wasSet = !!state.password;
+    if (wasSet && encode(oldPw) !== state.password){
+      logEvent(newTopId(), 'ERROR', 'Incorrect current password on change attempt.', {});
+      showMsg(pwMsg, "Current password is incorrect.", "err");
+      return;
+    }
+    state.password = encode(newPw);
+    saveState();
+    logEvent(newTopId(), 'PASSWORD', wasSet ? 'Password changed.' : 'Password set for the first time.', {});
+    renderStats();
+    pwOld.value = ""; pwNew.value = "";
+    showMsg(pwMsg, "Password saved.", "ok");
+  });
+
+  /* =====================================================================
+     EXPORT / IMPORT / MERGE — .md / .txt / .json / .rtf
+  ===================================================================== */
+  const FORMAT_MIME = { md:'text/markdown', txt:'text/plain', json:'application/json', rtf:'application/rtf' };
+  const FORMAT_EXT  = { md:'.md', txt:'.txt', json:'.json', rtf:'.rtf' };
+
+  function buildPayload(){
+    return {
+      exportedAt: new Date().toISOString(),
+      current: { pool: state.pool, password: state.password },
+      history: { nextSeq: historyStore.nextSeq, events: historyStore.events }
+    };
+  }
+
+  function toMD(payload){
+    const lines = [];
+    lines.push('# Lot & Ledger Export', '', 'Exported: ' + payload.exportedAt, '');
+    lines.push('## Current State', '');
+    lines.push('- Pool size: ' + payload.current.pool.length);
+    lines.push('- Password set: ' + (payload.current.password ? 'yes' : 'no'), '');
+    lines.push('```json:current');
+    lines.push(JSON.stringify(payload.current, null, 2));
+    lines.push('```', '');
+    lines.push('## History (' + payload.history.events.length + ' events)', '');
+    for (const ev of payload.history.events){
+      lines.push('- `' + ev.id + '` **' + ev.type + '** ' + ev.ts + ' — ' + ev.message);
+    }
+    lines.push('');
+    lines.push('```json:history');
+    lines.push(JSON.stringify(payload.history, null, 2));
+    lines.push('```');
+    return lines.join('\n');
+  }
+
+  function toTXT(payload){
+    const lines = [];
+    lines.push('LOT & LEDGER EXPORT');
+    lines.push('Exported: ' + payload.exportedAt, '');
+    lines.push('== CURRENT STATE ==');
+    lines.push('Pool size: ' + payload.current.pool.length);
+    lines.push('Password set: ' + (payload.current.password ? 'yes' : 'no'), '');
+    lines.push('-----BEGIN CURRENT JSON-----');
+    lines.push(JSON.stringify(payload.current));
+    lines.push('-----END CURRENT JSON-----', '');
+    lines.push('== HISTORY (' + payload.history.events.length + ' events) ==');
+    for (const ev of payload.history.events){
+      lines.push('[' + ev.id + '] ' + ev.type + ' ' + ev.ts + ' - ' + ev.message);
+    }
+    lines.push('');
+    lines.push('-----BEGIN HISTORY JSON-----');
+    lines.push(JSON.stringify(payload.history));
+    lines.push('-----END HISTORY JSON-----');
+    return lines.join('\n');
+  }
+
+  function toRTF(payload){
+    const txt = toTXT(payload);
+    const escaped = txt.replace(/\\/g,'\\\\').replace(/\{/g,'\\{').replace(/\}/g,'\\}').replace(/\n/g,'\\line\n');
+    return '{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Courier New;}}\\f0\\fs20\n' + escaped + '\n}';
+  }
+
+  function serialize(format, payload){
+    if (format === 'json') return JSON.stringify(payload, null, 2);
+    if (format === 'md') return toMD(payload);
+    if (format === 'txt') return toTXT(payload);
+    if (format === 'rtf') return toRTF(payload);
+    throw new Error('Unknown format: ' + format);
+  }
+
+  function rtfToText(rtf){
+    return rtf
+      .replace(/\\line/g, '\n')
+      .replace(/\\par[d]?/g, '\n')
+      .replace(/\{\\fonttbl[\s\S]*?\}\}/, '')
+      .replace(/\\[a-zA-Z]+-?\d*/g, '')
+      .replace(/[{}]/g, '')
+      .replace(/\\\\/g, '\\')
+      .trim();
+  }
+
+  function parsePayload(text){
+    const trimmed = text.trim();
+
+    if (trimmed.startsWith('{\\rtf')){
+      return parsePayload(rtfToText(trimmed));
+    }
+
+    if (trimmed.startsWith('{')){
+      try{
+        const obj = JSON.parse(trimmed);
+        if (obj.current || obj.history) return { current: obj.current, history: obj.history };
+      }catch(e){ /* not raw JSON, fall through */ }
+    }
+
+    let current, history;
+    const curMd = text.match(/```json:current\n([\s\S]*?)```/);
+    const histMd = text.match(/```json:history\n([\s\S]*?)```/);
+    if (curMd) current = JSON.parse(curMd[1]);
+    if (histMd) history = JSON.parse(histMd[1]);
+
+    if (!current){
+      const curTxt = text.match(/-----BEGIN CURRENT JSON-----\n([\s\S]*?)\n-----END CURRENT JSON-----/);
+      if (curTxt) current = JSON.parse(curTxt[1]);
+    }
+    if (!history){
+      const histTxt = text.match(/-----BEGIN HISTORY JSON-----\n([\s\S]*?)\n-----END HISTORY JSON-----/);
+      if (histTxt) history = JSON.parse(histTxt[1]);
+    }
+
+    if (!current && !history) throw new Error('Could not find recognizable Lot & Ledger data in this file.');
+    return { current, history };
+  }
+
+  function triggerDownload(format){
+    const payload = buildPayload();
+    const text = serialize(format, payload);
+    const blob = new Blob([text], { type: FORMAT_MIME[format] });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'lot-and-ledger-export' + FORMAT_EXT[format];
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    logEvent(newTopId(), 'EXPORT', 'Exported current + history as ' + FORMAT_EXT[format] + ' (downloaded).', { format, method: 'download' });
+    return text;
+  }
+
+  async function copyExport(format){
+    const payload = buildPayload();
+    const text = serialize(format, payload);
+    await navigator.clipboard.writeText(text);
+    logEvent(newTopId(), 'EXPORT', 'Copied current + history as ' + FORMAT_EXT[format] + ' to clipboard.', { format, method: 'copy' });
+    return text;
+  }
+
+  function doImport(text, sourceLabel){
+    const parsed = parsePayload(text);
+    const beforePool = state.pool.length;
+    const beforeEvents = historyStore.events.length;
+
+    if (parsed.current && Array.isArray(parsed.current.pool)){
+      state = { pool: parsed.current.pool, password: parsed.current.password || null };
+      saveState();
+    }
+    if (parsed.history && Array.isArray(parsed.history.events)){
+      historyStore = { nextSeq: parsed.history.nextSeq || (parsed.history.events.length + 1), events: parsed.history.events };
+    }
+
+    const topId = newTopId();
+    const parts = [];
+    parts.push(parsed.current ? ('current: ' + beforePool + ' → ' + state.pool.length + ' chapters') : 'current: unchanged (not present in file)');
+    parts.push(parsed.history ? ('history: ' + beforeEvents + ' → ' + historyStore.events.length + ' events (replaced)') : 'history: unchanged (not present in file)');
+    logEvent(topId, 'IMPORT', 'Imported from "' + sourceLabel + '" — ' + parts.join('; ') + '.', { source: sourceLabel, hadCurrent: !!parsed.current, hadHistory: !!parsed.history });
+
+    saveHistory();
+    replayLogToWidget();
+    renderAll();
+    return parsed;
+  }
+
+  function doMerge(text, sourceLabel){
+    const parsed = parsePayload(text);
+    let added = 0, dup = 0;
+    if (parsed.history && Array.isArray(parsed.history.events)){
+      const existingIds = new Set(historyStore.events.map(e => e.id));
+      for (const ev of parsed.history.events){
+        if (existingIds.has(ev.id)){ dup++; continue; }
+        historyStore.events.push(ev);
+        existingIds.add(ev.id);
+        added++;
+      }
+      historyStore.events.sort((a, b) => a.ts.localeCompare(b.ts));
+      historyStore.nextSeq = Math.max(historyStore.nextSeq, parsed.history.nextSeq || 1);
+    }
+
+    const topId = newTopId();
+    logEvent(topId, 'MERGE',
+      'Merged history from "' + sourceLabel + '": +' + added + ' new event(s), ' + dup + ' duplicate(s) skipped. Current state kept from this page (' + state.pool.length + ' chapters).',
+      { added, duplicates: dup, source: sourceLabel });
+
+    saveHistory();
+    replayLogToWidget();
+    renderAll();
+    return { added, dup };
+  }
+
+  /* ---------- floating console wiring ---------- */
+  const lcWidget = document.getElementById('lcWidget');
+  const lcHeader = document.getElementById('lcHeader');
+  const lcChev = document.getElementById('lcChev');
+  const lcFormat = document.getElementById('lcFormat');
+  const lcMsg = document.getElementById('lcMsg');
+
+  lcHeader.addEventListener('click', () => {
+    lcWidget.classList.toggle('open');
+    lcChev.textContent = lcWidget.classList.contains('open') ? '▼' : '▲';
+    if (lcWidget.classList.contains('open')) lcLog.scrollTop = lcLog.scrollHeight;
+  });
+
+  function showLcMsg(text, kind){
+    lcMsg.textContent = text;
+    lcMsg.className = 'lc-msg ' + kind;
+    setTimeout(() => { lcMsg.textContent = ''; lcMsg.className = 'lc-msg'; }, 4000);
+  }
+
+  document.getElementById('lcExport').addEventListener('click', () => {
+    triggerDownload(lcFormat.value);
+    showLcMsg('Exported as ' + FORMAT_EXT[lcFormat.value] + '.', 'ok');
+  });
+
+  document.getElementById('lcCopy').addEventListener('click', async () => {
+    try{ await copyExport(lcFormat.value); showLcMsg('Copied as ' + FORMAT_EXT[lcFormat.value] + '.', 'ok'); }
+    catch(e){ showLcMsg('Copy failed: ' + e.message, 'err'); }
+  });
+
+  const lcImportBtn = document.getElementById('lcImportBtn');
+  const lcImportFile = document.getElementById('lcImportFile');
+  lcImportBtn.addEventListener('click', () => lcImportFile.click());
+  lcImportFile.addEventListener('change', () => {
+    const file = lcImportFile.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{ doImport(reader.result, file.name); showLcMsg('Imported ' + file.name + '.', 'ok'); }
+      catch(e){ showLcMsg('Import failed: ' + e.message, 'err'); }
+      lcImportFile.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  const lcMergeBtn = document.getElementById('lcMergeBtn');
+  const lcMergeFile = document.getElementById('lcMergeFile');
+  lcMergeBtn.addEventListener('click', () => lcMergeFile.click());
+  lcMergeFile.addEventListener('change', () => {
+    const file = lcMergeFile.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{ const r = doMerge(reader.result, file.name); showLcMsg('Merged ' + file.name + ': +' + r.added + ', dup ' + r.dup + '.', 'ok'); }
+      catch(e){ showLcMsg('Merge failed: ' + e.message, 'err'); }
+      lcMergeFile.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  /* =====================================================================
+     DEVTOOLS CONSOLE API
+  ===================================================================== */
+  const HELP_TEXT =
+    "Lot & Ledger console API\n" +
+    "  LotAndLedger.getState()        -> {pool, password}\n" +
+    "  LotAndLedger.getHistory()      -> {nextSeq, events}\n" +
+    "  LotAndLedger.export(format)    -> string  (format: 'md'|'txt'|'json'|'rtf', default 'md')\n" +
+    "  LotAndLedger.download(format)  -> triggers a file download\n" +
+    "  LotAndLedger.copy(format)      -> copies export text to clipboard (async)\n" +
+    "  LotAndLedger.import(text)      -> replaces current + history from text\n" +
+    "  LotAndLedger.merge(text)       -> merges history from text; current stays as-is\n" +
+    "  LotAndLedger.help()            -> prints this message";
+
+  window.LotAndLedger = {
+    getState: () => JSON.parse(JSON.stringify(state)),
+    getHistory: () => JSON.parse(JSON.stringify(historyStore)),
+    export: (format) => serialize(format || 'md', buildPayload()),
+    download: (format) => triggerDownload(format || 'md'),
+    copy: (format) => copyExport(format || 'md'),
+    import: (text) => doImport(text, 'console'),
+    merge: (text) => doMerge(text, 'console'),
+    help: () => console.log(HELP_TEXT)
+  };
+
+  /* =====================================================================
+     INIT
+  ===================================================================== */
+  replayLogToWidget();
+  renderAll();
+  logEvent(newTopId(), 'INFO',
+    'Session started. Pool: ' + state.pool.length + ' chapters. ' + historyStore.events.length + ' prior event(s) loaded from localStorage.',
+    { poolSize: state.pool.length, priorEvents: historyStore.events.length });
+
+  console.log('%cLot & Ledger%c — dev console ready. Run LotAndLedger.help() for the API.', 'color:#c8a24b;font-weight:bold;font-size:13px', 'color:inherit');
+
+})();
+</script>
+</body>
+</html>
